@@ -36,8 +36,6 @@ enum char_code {
 enum misc {
 	BUFSIZE            = 1024,             /* read, esc, various buffer size */
 	BITS_PER_BYTE      = 8,                /* bits per byte */
-	BYTES_PER_PIXEL    = sizeof(uint32_t), /* pixel size of sixel pixmap data */
-	BITS_PER_SIXEL     = 6,                /* number of bits of a sixel */
 	ESCSEQ_SIZE        = 1024,             /* limit size of terminal escape sequence */
 	SELECT_TIMEOUT     = 15000,            /* used by select() */
 	SLEEP_TIME         = 30000,            /* sleep time at EAGAIN, EWOULDBLOCK (usec) */
@@ -45,12 +43,8 @@ enum misc {
 	UCS2_CHARS         = 0x10000,          /* number of UCS2 glyphs */
 	CTRL_CHARS         = 0x20,             /* number of ctrl_func */
 	ESC_CHARS          = 0x80,             /* number of esc_func */
-	DRCS_CHARSETS      = 63,               /* number of charset of DRCS (according to DRCSMMv1) */
-	GLYPHS_PER_CHARSET = 96,               /* number of glyph of each DRCS charset */
-	DRCS_CHARS         = DRCS_CHARSETS * GLYPHS_PER_CHARSET,
 	DEFAULT_CHAR       = SPACE,            /* used for erase char */
 	BRIGHT_INC         = 8,                /* value used for brightening color */
-	OSC_GWREPT         = 8900,             /* OSC Ps: mode number of yaft GWREPT */
 };
 
 enum char_attr {
@@ -93,7 +87,7 @@ enum esc_state {
 	STATE_DCS    = 0x08, /* ESC P */
 };
 
-enum glyph_width_t {
+enum glyph_width {
 	NEXT_TO_WIDE = 0,
 	HALF,
 	WIDE,
@@ -107,11 +101,7 @@ struct cell_t {
 	const struct glyph_t *glyphp;   /* pointer to glyph */
 	struct color_pair_t color_pair; /* color (fg, bg) */
 	enum char_attr attribute;       /* bold, underscore, etc... */
-	enum glyph_width_t width;       /* wide char flag: WIDE, NEXT_TO_WIDE, HALF */
-	bool has_pixmap;                /* has sixel pixmap data or not */
-	/*	sixel pixmap data:
-		must be statically allocated for copy_cell() */
-	uint8_t pixmap[BYTES_PER_PIXEL * CELL_WIDTH * CELL_HEIGHT];
+	enum glyph_width width;         /* wide char flag: WIDE, NEXT_TO_WIDE, HALF */
 };
 
 struct esc_t {
@@ -122,8 +112,9 @@ struct esc_t {
 };
 
 struct charset_t {
-	uint32_t code; /* UCS4 code point: yaft only prints UCS2 and DRCSMMv1 */
-	int following_byte, count;
+	uint32_t code;     /* UCS2 code point: yaft only supports BMP */
+	int following_byte;
+	int count;
 	bool is_valid;
 };
 
@@ -133,21 +124,12 @@ struct state_t {   /* for save, restore state */
 	enum char_attr attribute;
 };
 
-struct sixel_canvas_t {
-	uint8_t *pixmap;
-	struct point_t point;
-	int width, height;
-	int line_length;
-	uint8_t color_index;
-	uint32_t color_table[COLORS];
-};
-
 struct terminal_t {
 	int fd;                                  /* master of pseudo terminal */
 	int width, height;                       /* terminal size (pixel) */
 	int cols, lines;                         /* terminal size (cell) */
 	struct cell_t *cells;                    /* pointer to each cell: cells[y * lines + x] */
-	struct margin_t scroll;                    /* scroll margin */
+	struct margin_t scroll;                  /* scroll margin */
 	struct point_t cursor;                   /* cursor pos (x, y) */
 	bool *line_dirty;                        /* dirty flag */
 	bool *tabstop;                           /* tabstop flag */
@@ -158,11 +140,7 @@ struct terminal_t {
 	enum char_attr attribute;                /* bold, underscore, etc... */
 	struct charset_t charset;                /* store UTF-8 byte stream */
 	struct esc_t esc;                        /* store escape sequence */
-	uint32_t virtual_palette[COLORS];        /* virtual color palette: always 32bpp */
-	bool palette_modified;                   /* true if palette changed by OSC 4/104 */
 	const struct glyph_t *glyph[UCS2_CHARS]; /* array of pointer to glyphs[] */
-	struct glyph_t drcs[DRCS_CHARS];         /* DRCS chars */
-	struct sixel_canvas_t sixel;
 };
 
 struct parm_t { /* for parse_arg() */
