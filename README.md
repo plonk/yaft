@@ -48,6 +48,7 @@ $ idump /path/to/wallpaper.png; tput civis; YAFT="wall" FRAMEBUFFER="/dev/fb1" S
 *BSD users should check README.bsd
 
 ~~~
+
 $ export LANG=en_US.UTF-8 # yaft uses libc's wcwidth for calculating glyph width
 $ make
 # make install
@@ -55,7 +56,6 @@ or
 $ make yaftx
 # make installx
 ~~~
-
 ## how to use your favorite fonts
 
 You can use tools/mkfont_bdf to create "glyph.h".
